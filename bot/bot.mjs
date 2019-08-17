@@ -1,8 +1,9 @@
-require('dotenv').config();
-const _ = require('lodash');
-const abcToEmoji = require('./regionalEmojiTranslator')
-const Discord = require('discord.js');
-const client = new Discord.Client();
+import dotenv from 'dotenv';
+import _ from 'lodash';
+import abcToEmoji from './regionalEmojiTranslator';
+import discord from 'discord.js';
+dotenv.config();
+const client = new discord.Client();
 const WAKESYMBOL = ">";
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
@@ -10,37 +11,36 @@ client.on('ready', () => {
 const TYPES = {
   TEXT:"text",
   RAFFLE:"raffle",
-  ECHO:"echo",
-  HELP:"help",
-  REACT:"react"
+  REACT:"react",
+  MUSIC:"music"
 };
 const ACTIONS = {
   git:{
     type: TYPES.TEXT,
-    template:"gud"
-    },
+    template:_.template("gud")
+  },
   ligma:{
     type: TYPES.RAFFLE,
-    template: _.template(" <%= userID %> has been banned for having LIGMA.")
+    template: _.template(" <@<%= userID %>> has been banned for having LIGMA.")
   },
   raffle:{
     type: TYPES.RAFFLE,
     template:_.template("🤔")
   },
   ping:{
-    type: TYPES.ECHO,
+    type: TYPES.TEXT,
     template:_.template("pong")
   },
   echo:{
-    type: TYPES.ECHO,
+    type: TYPES.TEXT,
     template:_.template("<%= content %>")
   },
   users:{
-    type:TYPES.ECHO,
+    type:TYPES.TEXT,
     template:_.template("Disabled")
   },
   help:{
-    type: TYPES.HELP,
+    type: TYPES.TEXT,
     template: _.template("Available commands: \n <%= commands %>") 
   },
   music:{
@@ -52,14 +52,12 @@ const ACTIONS = {
   }
 };
 
-// Recursive react to write under peoples names.
-function reactArray(array,msg) {
-  if(array.length === 0) return;
-  const current = array.shift();
-  msg.react(current).then(reactArray(array,msg));
+async function notImplemented(msg){
+  msg.react('🤔');
+  msg.reply('This action has not been implemented.');
 }
 
-client.on('message', msg => {
+client.on('message',async msg => {
   if (_.startsWith(msg.content,WAKESYMBOL)) {
     let text = msg.content;
     text = text.slice(1,text.length);
@@ -67,8 +65,7 @@ client.on('message', msg => {
     const messageAction = text.split(" ")[0];
     const action = ACTIONS[messageAction.toLowerCase()];
     if(action === undefined){
-      msg.react('🤔');
-      msg.reply('This action has not been implemented.');
+      await notImplemented(msg);
       return;
     }
     // template data
@@ -85,27 +82,19 @@ client.on('message', msg => {
       allUsers: client.users.map(u=>u.tag+String(u.bot)),
     };
     switch (action.type) {
-      case TYPES.TEXT:
-        msg.reply(action.template(templateData));
-        break;
       case TYPES.RAFFLE:
         msg.channel.send(action.template(templateData));
         break;
-      case TYPES.ECHO:
-        msg.reply(action.template(templateData));
-        break;
-      case TYPES.HELP:
-        msg.reply(action.template(templateData));
-        break;
-      case TYPES.MUSIC:
+      case TYPES.TEXT:
         msg.reply(action.template(templateData));
         break;
       case TYPES.REACT:
-        reactArray(abcToEmoji(templateData.content.replace(' ','')),msg);
+        abcToEmoji(templateData.content.replace(/ /g,'')).forEach(async emoji =>{
+          await msg.react(emoji);
+        });
         break;
       default:
-        msg.reply('This action has not been implemented.');
-        msg.react('🤔');
+        await notImplemented(msg);
         break;
     }
   }
@@ -123,5 +112,5 @@ client.on("ready", () => {
     console.error(e);
   });
 });
-
+console.log(process.env.LOGIN_TOKEN)
 client.login(process.env.LOGIN_TOKEN);
