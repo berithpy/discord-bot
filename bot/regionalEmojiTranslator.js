@@ -30,4 +30,4 @@ const LETTERS = {
 
 module.exports = function (input){
     return input.toUpperCase().split('').map(letter=>LETTERS[letter]);
-}
+};
